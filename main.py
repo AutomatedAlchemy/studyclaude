@@ -601,6 +601,17 @@ def opening_message_onboard() -> str:
     )
 
 
+def _assemble_onboard_prompt() -> str:
+    """System prompt for the onboarding session. It builds the Kursübersicht in
+    the active medium, so it needs the medium mechanics like every session."""
+    return (
+        "Du hilfst dem User, einen neuen Lern-Loop-Kurs für das Tool 'lernclaude' anzulegen: "
+        "gemeinsam einen Ordner für Material + personalisierte Lern-Dateien finden/festlegen, "
+        "dann per angegebenem Befehl registrieren.\n\n"
+        + _prompt_common()
+    )
+
+
 def do_add() -> int:
     """Launch an interactive onboarding session (inline: takes over the menu terminal).
 
@@ -609,18 +620,10 @@ def do_add() -> int:
     """
     root = _material_root()
     workdir = root if os.path.isdir(root) else str(Path.home())
-    today = datetime.now().strftime("%A %Y-%m-%d")
-    sys_prompt = (
-        "Du hilfst dem User, einen neuen Lern-Loop-Kurs für das Tool 'lernclaude' anzulegen: "
-        "gemeinsam einen Ordner für Material + personalisierte Lern-Dateien finden/festlegen, "
-        "dann per angegebenem Befehl registrieren. Erklärungen im Chat OHNE LaTeX — Unicode-"
-        "Notation (√, x², ∫, ≤, λ).\n\n"
-        f"---\n# Heute: {today}\n"
-    )
     inner = [
         *_backend_cmd(),
         *_backend_model_args(),
-        "--append-system-prompt", sys_prompt,
+        "--append-system-prompt", _assemble_onboard_prompt(),
         opening_message_onboard(),
     ]
     env = _launch_env()

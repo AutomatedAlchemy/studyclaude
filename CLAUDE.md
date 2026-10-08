@@ -246,7 +246,10 @@ pieces: the *choice* (registry key `medium`, menu key `m`, `--set-medium`,
 `_assemble_prompt` — only the active medium's file, fail-into-silence when
 missing). `_prompt_common` emits three tagged parts — `<orientierung>`,
 `<heute>` and `<medium_mechanik name="…">` — so the session can tell the
-launcher's orientation from the medium file it carries. Course CLAUDE.mds and the workspace template carry no medium
+launcher's orientation from the medium file it carries. Every launch gets it,
+onboarding included: onboarding builds the first Kursübersicht in the medium
+(`_assemble_onboard_prompt`; until 2026-10-08 it had its own prompt without
+the medium). Course CLAUDE.mds and the workspace template carry no medium
 machinery; they point at "Systemprompt" (the last asserts of
 `test_scaffold_never_overwrites_and_teaches_the_conventions` pin this). Escape hatches the prompt grants: mid-session verbal
 switching (next Häppchen in the new medium), and a course CLAUDE.md may pin a

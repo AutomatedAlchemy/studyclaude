@@ -341,6 +341,7 @@ def test_prompts_orient_without_reencoding_the_procedure(tmp_path, monkeypatch):
     assert template_path not in m.opening_message(a)         # confirmed: no nudge
     assert "Übersicht: bestätigt 2026-09-02" in m.opening_message_tutor([a, b])
     assert "Kursübersicht" in m.opening_message_onboard()
+    assert "Bedienung des Boards" in m._assemble_onboard_prompt()   # builds it in the medium
     # the Blatt-Finder: the launcher names the tool, the step itself is the
     # course CLAUDE.md's and the tool's --help
     finder = m.TEMPLATE_DIR / "tools" / "blatt_finder.py"
