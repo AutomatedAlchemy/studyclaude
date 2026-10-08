@@ -133,6 +133,9 @@ interactive tutoring, where latency is felt more than reasoning depth helps. `o`
 `--set-effort`) change model (Opus | Sonnet | Fable) and effort (low | medium |
 high | xhigh | max); the pick is used as chosen and persists in the registry.
 
+Subagents a session starts (explainer clips, the Blatt-Finder mapping) run on
+Sonnet, or Haiku for simple work, never on Opus.
+
 A workspace itself is a normal folder with your material plus a `CLAUDE.md`.
 Onboarding stamps a minimal skeleton (`CLAUDE.md`, `todo.md`, `fehlermuster.md`,
 `Personalisierte_Übungen/`) and never overwrites an existing file. Layout, the

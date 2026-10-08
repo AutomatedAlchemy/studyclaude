@@ -367,6 +367,13 @@ Launches use the registry keys `model` and `effort` directly, defaulting to
 Medium is a deliberate ceiling, not an oversight: this is interactive tutoring,
 where latency is felt more than extra depth helps.
 
+Subagents never run on Opus (user, 2026-10-08). `_prompt_common` tells every
+session to pass `model: sonnet`, or `model: haiku` for simple work, on each
+Agent call. The two places that start subagents by design name the model
+themselves: the explainer clip in `templates/media/board.md` and step 3 of
+`blatt_finder.py --help`. An explicit model is needed because a subagent
+without one inherits the session's model, which defaults to opus.
+
 The pick is used exactly as set — there is no tier detection and no clamp
 (user, 2026-09-16). `auto`, the `LERNCLAUDE_MODEL` / `LERNCLAUDE_EFFORT`
 overrides and the tier lookup they fed were all removed then; `tier.py` is

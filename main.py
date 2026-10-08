@@ -345,7 +345,10 @@ def _prompt_common() -> str:
         "normaler/Unicode-Notation (z.B. √, x², ∫, ≤, λ, x_1, Brüche als "
         "(a+b)/c). Das gilt nur für den Chat: in den .tex-Dateien der Häppchen "
         "und überall, wo das Arbeitsmedium LaTeX rendert (Tutor Board), "
-        "schreibst du LaTeX wie in der Medium-Mechanik unten beschrieben.\n"
+        "schreibst du LaTeX wie in der Medium-Mechanik unten beschrieben.\n\n"
+        "Subagenten (Agent-Tool) startest du immer mit ausdrücklichem Modell: "
+        "`model: sonnet`, für einfache Arbeit wie Suchen oder Abschreiben "
+        "`model: haiku`. Nie opus.\n"
         "</orientierung>\n\n"
         f"<heute>\n# Heute: {today}\n</heute>\n"
     )

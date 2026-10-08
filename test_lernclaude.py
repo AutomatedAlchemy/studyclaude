@@ -330,6 +330,7 @@ def test_prompts_orient_without_reencoding_the_procedure(tmp_path, monkeypatch):
         for forbidden in ("cheatsheet", "basics.pdf", "haeppchen_"):
             assert forbidden not in text, (name, forbidden)
         assert "Fortschritt: x/y Häppchen" in text, name    # the menu reads that line
+        assert "model: sonnet" in text and "model: opus" not in text, name   # subagents
     # the Kursübersicht: the launcher only says "build it first" and names the
     # template the section is copied from — the content stays in the course CLAUDE.md
     template_path = str(m.TEMPLATE_DIR / "LERNLOOP_TEMPLATE.md")
