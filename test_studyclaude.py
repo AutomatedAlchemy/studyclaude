@@ -1,4 +1,4 @@
-"""Offline tests for lernclaude — no konsole/claude launch, no network.
+"""Offline tests for studyclaude — no konsole/claude launch, no network.
 
 Every test asserts a behaviour that would break something real: the registry
 state machine, the CLI routing, the launch argv, the parsers that read foreign
@@ -22,7 +22,7 @@ TEMPLATE = (HERE / "templates" / "LERNLOOP_TEMPLATE.md").read_text(encoding="utf
 
 
 def _load():
-    spec = importlib.util.spec_from_file_location("lernclaude_main", MAIN)
+    spec = importlib.util.spec_from_file_location("studyclaude_main", MAIN)
     assert spec and spec.loader
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -38,10 +38,10 @@ def spawns(monkeypatch, tmp_path):
     recorded (tests inspect the argv); a Popen fails the test unless it opted
     in with ``spawns["allow_popen"] = True``. Also isolates the registry."""
     rec = {"exec": [], "popen": [], "cwd": None}
-    monkeypatch.setenv("LERNCLAUDE_REGISTRY", str(tmp_path / "registry.json"))
-    monkeypatch.delenv("LERNCLAUDE_DEFAULT_WORKSPACE", raising=False)
-    monkeypatch.delenv("LERNCLAUDE_MEDIUM", raising=False)
-    monkeypatch.delenv("LERNCLAUDE_EXAMS", raising=False)
+    monkeypatch.setenv("STUDYCLAUDE_REGISTRY", str(tmp_path / "registry.json"))
+    monkeypatch.delenv("STUDYCLAUDE_DEFAULT_WORKSPACE", raising=False)
+    monkeypatch.delenv("STUDYCLAUDE_MEDIUM", raising=False)
+    monkeypatch.delenv("STUDYCLAUDE_EXAMS", raising=False)
     monkeypatch.setenv("CLAUDE_TIER_OVERRIDE", "max")
     monkeypatch.setattr(m.os, "chdir", lambda d: rec.update(cwd=d))
     monkeypatch.setattr(m.os, "execvpe", lambda prog, argv, env: rec["exec"].append(argv))
@@ -92,12 +92,12 @@ def test_board_template_carries_no_mcp_manual():
 def test_advertise_answers_before_heavy_imports(monkeypatch, capsys):
     """The installer polls --advertise with a 5s timeout; it is answered at
     import time, before argparse, and must be the installer's JSON shape."""
-    monkeypatch.setattr(sys, "argv", ["lernen", "--advertise"])
+    monkeypatch.setattr(sys, "argv", ["studyclaude", "--advertise"])
     with pytest.raises(SystemExit) as e:
         _load()
     assert e.value.code == 0
     meta = json.loads(capsys.readouterr().out)[0]
-    assert meta["alias"] == "lernen" and meta["capability"] == "agent"
+    assert meta["alias"] == "studyclaude" and meta["capability"] == "agent"
     assert "skill_name" not in meta   # an agent you talk to, not a skill
 
 
@@ -119,9 +119,9 @@ def test_registry_state_machine(tmp_path, monkeypatch):
         data = m._load_registry()
         assert data["default"] == sentinel and sentinel not in data["workspaces"]
         assert m._resolve_workspace(None) == a               # scripts never see a sentinel
-    monkeypatch.setenv("LERNCLAUDE_DEFAULT_WORKSPACE", b)
+    monkeypatch.setenv("STUDYCLAUDE_DEFAULT_WORKSPACE", b)
     assert m._resolve_workspace(None) == b                   # env wins
-    monkeypatch.delenv("LERNCLAUDE_DEFAULT_WORKSPACE")
+    monkeypatch.delenv("STUDYCLAUDE_DEFAULT_WORKSPACE")
     m._set_default(a)
     assert m._unregister_workspace(a) and not m._unregister_workspace(a)
     assert m._ensure_default(m._load_registry())["default"] == b   # default falls back
@@ -155,9 +155,9 @@ def test_medium_choice_precedence(monkeypatch):
     assert m._current_medium() == "xournalpp"
     m._set_medium("board")
     assert m._current_medium() == "board"                    # registry
-    monkeypatch.setenv("LERNCLAUDE_MEDIUM", "xournalpp")
+    monkeypatch.setenv("STUDYCLAUDE_MEDIUM", "xournalpp")
     assert m._current_medium() == "xournalpp"                # env wins
-    monkeypatch.setenv("LERNCLAUDE_MEDIUM", "garbage")
+    monkeypatch.setenv("STUDYCLAUDE_MEDIUM", "garbage")
     assert m._current_medium() == "xournalpp"                # junk falls back
     for medium in m._MEDIA:
         assert (HERE / "templates" / "media" / f"{medium}.md").is_file()
@@ -243,7 +243,7 @@ def test_cli_routes(tmp_path, monkeypatch, spawns):
     }
     for argv, expect in cases.items():
         called.clear()
-        monkeypatch.setattr(sys, "argv", ["lernen", *argv])
+        monkeypatch.setattr(sys, "argv", ["studyclaude", *argv])
         assert m.main() == (1 if argv == ("--meta",) else 0), argv
         assert called == ([expect] if expect else []), argv
     assert (tmp_path / "Neu" / "CLAUDE.md").is_file()       # --register scaffolded
@@ -315,7 +315,7 @@ def test_prompts_orient_without_reencoding_the_procedure(tmp_path, monkeypatch):
     that one's), but no sheet names and no Häppchen file list."""
     a, b = _courses(tmp_path, "Physik", "Spanisch")
     Path(a, "todo.md").write_text("Fortschritt: 2/30 Häppchen\n", encoding="utf-8")
-    monkeypatch.setenv("LERNCLAUDE_MEDIUM", "board")
+    monkeypatch.setenv("STUDYCLAUDE_MEDIUM", "board")
     texts = {
         "course": m._assemble_prompt(a) + m.opening_message(a),
         "tutor": m._assemble_tutor_prompt() + m.opening_message_tutor([a, b]),
@@ -358,7 +358,7 @@ def test_prompts_orient_without_reencoding_the_procedure(tmp_path, monkeypatch):
     assert "fehlermuster.md" in texts["meta"] and "nur im Ziel-Ordner" in texts["meta"]
     assert a in texts["gaertner"] and "2/30" in texts["gaertner"]         # every dossier
     assert "--unregister" in texts["gaertner"] and "registry.json" not in texts["gaertner"]
-    monkeypatch.setenv("LERNCLAUDE_MEDIUM", "xournalpp")
+    monkeypatch.setenv("STUDYCLAUDE_MEDIUM", "xournalpp")
     assert ".xopp" in m._assemble_prompt(a) and "get_canvas" not in m._assemble_prompt(a)
 
 
@@ -367,7 +367,7 @@ def test_blatt_finder_marks_exactly_the_mapped_spans(tmp_path):
     else, a snippet that cuts a formula or left the sheet is refused, and the
     page builds without KaTeX."""
     spec = importlib.util.spec_from_file_location(
-        "lernclaude_blatt_finder", HERE / "templates" / "tools" / "blatt_finder.py")
+        "studyclaude_blatt_finder", HERE / "templates" / "tools" / "blatt_finder.py")
     bf = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(bf)
     sheet = tmp_path / "blatt.md"
@@ -571,7 +571,7 @@ def test_exam_table_parsing(tmp_path, monkeypatch):
     assert m.upcoming_exams() == []
     f = tmp_path / "Pruefungen.md"
     f.write_text(_EXAM_TABLE, encoding="utf-8")
-    monkeypatch.setenv("LERNCLAUDE_EXAMS", str(f))
+    monkeypatch.setenv("STUDYCLAUDE_EXAMS", str(f))
     rows = m.upcoming_exams(now=datetime.datetime(2026, 8, 13, 10, 0))
     assert [r[2] for r in rows] == ["Lineare Algebra I", "Thermodynamik", "Analysis"]
     assert rows[0][:2] == (34, "Mi 16.09. 09:00")

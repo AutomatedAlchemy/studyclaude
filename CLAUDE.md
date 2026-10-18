@@ -1,4 +1,4 @@
-# lernclaude — maintainer notes
+# studyclaude — maintainer notes
 
 User-facing docs are in [`README.md`](README.md). This file holds the design
 decisions and invariants an agent working on the code needs.
@@ -8,13 +8,19 @@ repo, following the same path `bloggen` took. It has **no** dependency on
 `_shared` any more: the tier logic was vendored into `tier.py`, and the installer
 import falls back gracefully when `cli_tools_kit` is absent.
 
+Renamed from **lernclaude** on 2026-10-18 (user). The alias `lernen` became
+`studyclaude`, the variables `LERNCLAUDE_*` became `STUDYCLAUDE_*`, and the
+GitHub repos `AutomatedAlchemy/lernclaude` and `lernclaude-fau` became
+`studyclaude` and `studyclaude-fau`. There is no fallback for the old names.
+The German terms inside the tool (Lern-Loop, Häppchen, „lass uns lernen“) stay.
+
 ## The SSoT boundary (the load-bearing invariant)
 
 The study procedure — *which* sheets to open, the Häppchen rotation, the topic
 order — lives canonically in each **workspace's** `CLAUDE.md`. This launcher must
 never re-encode it.
 
-`test_lernclaude.py` enforces this: the prompt-assembly tests assert that concrete
+`test_studyclaude.py` enforces this: the prompt-assembly tests assert that concrete
 take-in-sheet filenames never appear in the assembled prompt. If you find yourself
 adding a file list to `_assemble_prompt`, the change belongs in the workspace
 template instead.
@@ -47,7 +53,7 @@ its own reasons. Two consequences the code must keep honouring:
   garbage dates — every path returns `[]` and the menu just has no banner. This
   is a launcher; it must not refuse to open a course because a notes file moved.
 
-The path itself is configuration (`LERNCLAUDE_EXAMS`, or `exams_file` in the
+The path itself is configuration (`STUDYCLAUDE_EXAMS`, or `exams_file` in the
 registry), never a constant — `test_no_personal_paths_and_no_builtin_default` greps
 `main.py` for personal path fragments and this feature is exactly the kind that
 would tempt one back in.
@@ -85,7 +91,7 @@ purpose: confirmation is a latch, any occurrence means confirmed.
 Every course gets an overview before its first Häppchen — the contract between
 tutor and learner about what the exam, the topics and the materials cover. It
 is board-native by design: the learner only sees the working medium, never the
-files on the lernclaude host, so the overview is a medium object (board: Tab 0
+files on the studyclaude host, so the overview is a medium object (board: Tab 0
 with the materials attached via `upload_asset`; xournalpp: a reading PDF), not
 a markdown file. The split follows the Fortschritt pattern:
 
@@ -248,7 +254,7 @@ registering is itself a change that needs the plan.
 The working medium (Xournal++ vs Tutor Board) is deliberately NOT part of the
 SSoT in the course docs — it is cross-course infrastructure. Two launcher-owned
 pieces: the *choice* (registry key `medium`, menu key `m`, `--set-medium`,
-`LERNCLAUDE_MEDIUM` override, default `xournalpp`) and the *mechanics*
+`STUDYCLAUDE_MEDIUM` override, default `xournalpp`) and the *mechanics*
 (`templates/media/<name>.md`, appended to the system prompt by
 `_assemble_prompt` — only the active medium's file, fail-into-silence when
 missing). `_prompt_common` emits three tagged parts — `<orientierung>`,
@@ -351,7 +357,7 @@ showed three courses on one host and one on another). Keeping it beside the tool
 makes the course list travel with the checkout.
 
 Consequences to preserve:
-- The path takes a `LERNCLAUDE_REGISTRY` override so tests can redirect it to
+- The path takes a `STUDYCLAUDE_REGISTRY` override so tests can redirect it to
   `tmp_path`. Every registry test relies on this.
 - It is gitignored. It's mutable runtime state; tracking it would leave
   `git status` permanently dirty and invite merge conflicts.
@@ -382,7 +388,7 @@ themselves: the explainer clip in `templates/media/board.md` and step 3 of
 without one inherits the session's model, which defaults to opus.
 
 The pick is used exactly as set — there is no tier detection and no clamp
-(user, 2026-09-16). `auto`, the `LERNCLAUDE_MODEL` / `LERNCLAUDE_EFFORT`
+(user, 2026-09-16). `auto`, the `STUDYCLAUDE_MODEL` / `STUDYCLAUDE_EFFORT`
 overrides and the tier lookup they fed were all removed then; `tier.py` is
 retained but no longer imported. They are launcher-level switches shaped exactly like the medium
 switch (menu keys `m` / `o` / `e`, `--set-medium` / `--set-model` /
@@ -439,7 +445,7 @@ that value falls back to `DEFAULT_MODEL` instead of reaching a launch.
 | `templates/LERNLOOP_TEMPLATE.md` | the Lern-Loop procedure stamped into new workspaces |
 | `templates/media/*.md` | per-medium mechanics, appended to the system prompt |
 | `templates/tools/blatt_finder.py` | Blatt-Finder: validates a question→sheet mapping and builds the page; `--help` is the procedure |
-| `test_lernclaude.py` | offline tests — behaviour only, no network, no launch |
+| `test_studyclaude.py` | offline tests — behaviour only, no network, no launch |
 | `requirements.txt` | empty by design; stdlib only |
 
 ## Gotchas

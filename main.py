@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""lernclaude — spawn a Claude Code session that runs a personalized exam-prep Lern-Loop.
+"""studyclaude — spawn a Claude Code session that runs a personalized exam-prep Lern-Loop.
 
 A classclaude/surfclaude/bootclaude sibling. Launches a `claude` session straight
 inside an exam-prep **workspace folder** and kicks off that folder's "Lern-Loop".
 
 One engine, many subjects: the launcher takes a workspace path (positional, or
-via a per-workspace desktop icon) and launches there. A bare `lernen` opens a
+via a per-workspace desktop icon) and launches there. A bare `studyclaude` opens a
 menu of the workspaces you have registered; there is no built-in default folder.
 
 Deliberately thin: the whole procedure (which sheets to open, the Häppchen loop,
@@ -20,31 +20,31 @@ Improvements to the loop propagate to every subject; each subject still gets a
 one-click resume icon that doubles as a passive deadline nudge.
 
 Launch modes:
-    lernen                       -> course menu (10s autostart of the registered default)
-    lernen <workspace>           -> konsole running `claude` in that workspace folder
-    lernen --tutor               -> Tutors Choice: one session that picks the course AND tutors it
-    lernen --quickie             -> Quickie: one short, winnable Häppchen (5 min), streak-counted
-    lernen --print-prompt [ws]   -> print the assembled system prompt (no launch)
-    lernen --dry-run [ws]        -> print the launch argv (no launch)
-    lernen --install [ws]        -> desktop icon + alias (per-workspace when ws given, via --name/--alias)
-    lernen --remove  [ws]        -> remove that icon + alias
+    studyclaude                     -> course menu (10s autostart of the registered default)
+    studyclaude <workspace>         -> konsole running `claude` in that workspace folder
+    studyclaude --tutor             -> Tutors Choice: one session that picks the course AND tutors it
+    studyclaude --quickie           -> Quickie: one short, winnable Häppchen (5 min), streak-counted
+    studyclaude --print-prompt [ws] -> print the assembled system prompt (no launch)
+    studyclaude --dry-run [ws]      -> print the launch argv (no launch)
+    studyclaude --install [ws]      -> desktop icon + alias (per-workspace when ws given, via --name/--alias)
+    studyclaude --remove  [ws]      -> remove that icon + alias
 """
 import json
 import sys
 
 # --advertise must answer before any heavy import (installer 5s timeout).
 PARENT_METADATA = {
-    "name": "lernclaude",
+    "name": "studyclaude",
     "capability": "agent",
     "domain": "study-prep",
     "category": "personal",
-    "desktop_file": "lernclaude.desktop",
+    "desktop_file": "studyclaude.desktop",
     "icon": "accessories-text-editor",
     "desc": "Spawn a Claude session that runs a personalized exam-prep Lern-Loop in a workspace",
     "terminal": False,
     "args": [],
     "tags": ["CLI", "Icon"],
-    "alias": "lernen",
+    "alias": "studyclaude",
     # Autostart is the installer's to toggle (cli-tools-kit symlinks this tool's
     # .desktop into ~/.config/autostart); `True` only pre-ticks its checkbox.
     # The entry runs the icon's argument-less Exec, which is the menu — never a
@@ -55,7 +55,7 @@ PARENT_METADATA = {
     # lives in the installer's autostart.json, per host. Needs cli-tools-kit
     # >= 0.8.0; older installers ignore the field and start it every login.
     "autostart_conditions": ["time_window"],
-    # Deliberately NO skill_name: lernen is an agent you talk to, not a skill.
+    # Deliberately NO skill_name: studyclaude is an agent you talk to, not a skill.
 }
 
 if "--advertise" in sys.argv:
@@ -85,18 +85,18 @@ if str(SCRIPT_DIR) not in sys.path:
 def _material_root() -> str:
     """Where the onboarding session starts browsing for course material.
 
-    Set ``LERNCLAUDE_ROOT`` to the folder your study material lives under (the
+    Set ``STUDYCLAUDE_ROOT`` to the folder your study material lives under (the
     parent of your per-subject workspaces). Defaults to ``$HOME``, which just
     means onboarding starts its search a little wider.
     """
-    return os.path.expanduser(os.environ.get("LERNCLAUDE_ROOT", "~"))
+    return os.path.expanduser(os.environ.get("STUDYCLAUDE_ROOT", "~"))
 
 
 def _default_workspace() -> "str | None":
     """The workspace a bare launch targets, or ``None`` on a fresh install.
 
     This is the registry's ``default`` field (set in the menu with ``d``, or via
-    ``--set-default``). ``LERNCLAUDE_DEFAULT_WORKSPACE`` overrides it for
+    ``--set-default``). ``STUDYCLAUDE_DEFAULT_WORKSPACE`` overrides it for
     scripts and one-off launches. There is deliberately no built-in default:
     a fresh clone has no idea what you study, so it opens the menu instead.
 
@@ -104,7 +104,7 @@ def _default_workspace() -> "str | None":
     menu/autostart concepts, so scripts and the inspection flags fall back to
     the first course.
     """
-    env = os.environ.get("LERNCLAUDE_DEFAULT_WORKSPACE")
+    env = os.environ.get("STUDYCLAUDE_DEFAULT_WORKSPACE")
     if env:
         return str(Path(os.path.expanduser(env)).resolve())
     data = _load_registry()
@@ -175,7 +175,7 @@ _MEDIUM_LABELS = {"xournalpp": "Xournal++ + Firefox", "board": "Tutor Board"}
 
 def _current_medium() -> str:
     """The active medium: env override, else registry, else xournalpp."""
-    raw = (os.environ.get("LERNCLAUDE_MEDIUM")
+    raw = (os.environ.get("STUDYCLAUDE_MEDIUM")
            or _load_registry().get("medium") or "xournalpp")
     med = raw.strip().lower()
     return med if med in _MEDIA else "xournalpp"
@@ -334,7 +334,7 @@ def _prompt_common() -> str:
     text = (
         "<orientierung>\n"
         f"Arbeitsmedium dieser Session: {_MEDIUM_LABELS[medium]} — gesetzt über "
-        "den Umschalter im lernen-Menü, nicht erfragen. Die Mechanik des Mediums "
+        "den Umschalter im studyclaude-Menü, nicht erfragen. Die Mechanik des Mediums "
         "steht unten. Der User darf mitten im Lernen wechseln („lass uns aufs "
         "Board“, „zurück zu Xournal“) — dann ab dem nächsten Häppchen im neuen "
         "Medium weiterarbeiten und ihn erinnern, fürs nächste Mal den Schalter "
@@ -514,7 +514,7 @@ def _exec_or_konsole(inner: list[str], workdir: str, *, inline: bool) -> int:
         # into the konsole spawn below (it once opened three real windows).
         return 0
     konsole_cmd = [
-        "konsole", "--workdir", workdir, "-p", "tabtitle=Lernen", "-e", *inner,
+        "konsole", "--workdir", workdir, "-p", "tabtitle=studyclaude", "-e", *inner,
     ]
     try:
         subprocess.Popen(konsole_cmd, start_new_session=True, env=env)
@@ -534,7 +534,7 @@ def launch(workspace: str, *, inline: bool = False) -> int:
         return 1
     if not os.path.isfile(os.path.join(workspace, "CLAUDE.md")):
         print(f"Warning: {workspace}/CLAUDE.md not found — the Lern-Loop procedure "
-              "lives there. Run `lernen` and pick \u201eneuen Kurs anlegen\u201c to set the folder up.")
+              "lives there. Run `studyclaude` and pick \u201eneuen Kurs anlegen\u201c to set the folder up.")
     return _exec_or_konsole(_build_argv(workspace), workspace, inline=inline)
 
 
@@ -590,7 +590,7 @@ def opening_message_onboard() -> str:
         "nehmen) und stimme ihn mit mir ab — frag nach, entscheide nicht allein.\n"
         "3. Sobald wir uns einig sind, registriere + scaffolde den Ordner mit genau diesem Befehl:\n"
         f"     {_tool_cmd()} --register <ABSOLUTER_PFAD>\n"
-        "   Das legt die minimalen lernclaude-Dateien an (CLAUDE.md aus dem Template + todo.md + "
+        "   Das legt die minimalen studyclaude-Dateien an (CLAUDE.md aus dem Template + todo.md + "
         "fehlermuster.md + Ordner Personalisierte_Übungen/) und trägt den Kurs ins Startmenü ein.\n"
         "4. Danach: sichte das Material und fülle in der CLAUDE.md die Eckdaten (Fach, Klausurdatum/"
         "-modus, Hilfsmittel) UND den Themenkarte-Abschnitt aus (Klausur-Themen + je Thema die typische "
@@ -608,7 +608,7 @@ def _assemble_onboard_prompt() -> str:
     """System prompt for the onboarding session. It builds the Kursübersicht in
     the active medium, so it needs the medium mechanics like every session."""
     return (
-        "Du hilfst dem User, einen neuen Lern-Loop-Kurs für das Tool 'lernclaude' anzulegen: "
+        "Du hilfst dem User, einen neuen Lern-Loop-Kurs für das Tool 'studyclaude' anzulegen: "
         "gemeinsam einen Ordner für Material + personalisierte Lern-Dateien finden/festlegen, "
         "dann per angegebenem Befehl registrieren.\n\n"
         + _prompt_common()
@@ -645,7 +645,7 @@ def do_register(path: str) -> int:
     _scaffold_workspace(ws)
     _register_workspace(ws)
     print(f"Registered + scaffolded course: {ws}")
-    print("Es erscheint ab jetzt im `lernen`-Startmenü.")
+    print("Es erscheint ab jetzt im `studyclaude`-Startmenü.")
     return 0
 
 
@@ -659,7 +659,7 @@ def do_register(path: str) -> int:
 def _registry_path() -> Path:
     """Read from env each call so tests can redirect it after import."""
     return Path(os.path.expanduser(
-        os.environ.get("LERNCLAUDE_REGISTRY", str(SCRIPT_DIR / "data" / "registry.json"))))
+        os.environ.get("STUDYCLAUDE_REGISTRY", str(SCRIPT_DIR / "data" / "registry.json"))))
 
 
 def _load_registry() -> dict:
@@ -794,7 +794,7 @@ def _archive_workspace(path: str, registered: list[str] = ()) -> Path:
 # ----------------------------------------------------------------------------
 # exam calendar (optional): a markdown table of upcoming exams, shown in the menu
 # ----------------------------------------------------------------------------
-# The file is *not* built in: set ``LERNCLAUDE_EXAMS`` to a markdown file, or put
+# The file is *not* built in: set ``STUDYCLAUDE_EXAMS`` to a markdown file, or put
 # its path in the registry as ``exams_file``. Any markdown table in that file is
 # read when it has both a date column (Termin/Datum/Date) and a label column
 # (Fach/Kurs/Modul/Prüfung/Subject/Course) — everything else in the file is
@@ -810,7 +810,7 @@ _WEEKDAYS_DE = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
 
 def _exams_path() -> "str | None":
     """Where the exam table lives, or None if the user has not pointed at one."""
-    env = os.environ.get("LERNCLAUDE_EXAMS")
+    env = os.environ.get("STUDYCLAUDE_EXAMS")
     if env:
         return os.path.expanduser(env)
     entry = _load_registry().get("exams_file")
@@ -1696,7 +1696,7 @@ def _model_selection_menu(
             except Exception:
                 terminal_height, terminal_width = 24, 80
 
-            header_title = "╭─ lernclaude — Modell wählen ─╮"
+            header_title = "╭─ studyclaude — Modell wählen ─╮"
             _safe_addstr(stdscr, 0, 0, header_title, color_palette["title"])
 
             header_subtitle = "  Wähle das LLM-Modell für die Lern-Sessions:"
@@ -1859,7 +1859,7 @@ def _menu_loop(stdscr, data: dict):
     while True:
         remaining = 10.0 - (time.monotonic() - start)
         stdscr.erase()
-        _safe_addstr(stdscr, 0, 0, "╭─ lernclaude ", C["title"])
+        _safe_addstr(stdscr, 0, 0, "╭─ studyclaude ", C["title"])
         _safe_addstr(stdscr, 0, 14, "— Meta-Häppchen: Ziel + Quellen wählen ─╮" if multi
                      else "— Kurs wählen ─╮", C["title"])
         top = 2
@@ -2034,13 +2034,13 @@ def _menu_loop(stdscr, data: dict):
 def run_menu() -> int:
     # From the desktop icon there is no TTY — re-open inside konsole running the menu.
     if _needs_konsole_reexec():
-        cmd = ["konsole", "-p", "tabtitle=Lernen", "-e",
+        cmd = ["konsole", "-p", "tabtitle=studyclaude", "-e",
                sys.executable, str(Path(__file__).resolve()), "--menu"]
         try:
             subprocess.Popen(cmd, start_new_session=True, env=_launch_env())
             return 0
         except FileNotFoundError:
-            print("No TTY and no konsole found — run `lernen --menu` from a terminal.")
+            print("No TTY and no konsole found — run `studyclaude --menu` from a terminal.")
             return 1
 
     data = _ensure_default(_load_registry())
@@ -2085,17 +2085,17 @@ def _do_install_remove(remove: bool, workspace: "str | None" = None,
             return 1
 
     if workspace:
-        # Per-workspace icon: one thin launcher that calls `lernclaude <ws>`.
+        # Per-workspace icon: one thin launcher that calls `studyclaude <ws>`.
         ws = _abs_path(workspace)
         label = name or Path(ws).name
         slug = _slug(label)
         meta = ToolMetadata(
-            name=f"lernclaude: {label}",
-            desktop_file=f"lernclaude_{slug}.desktop",
+            name=f"studyclaude: {label}",
+            desktop_file=f"studyclaude_{slug}.desktop",
             icon=PARENT_METADATA["icon"],
             desc=f"Lern-Loop im Workspace {ws}",
             tags=PARENT_METADATA["tags"],
-            alias=alias or f"lernen_{slug}",
+            alias=alias or f"studyclaude_{slug}",
             terminal=PARENT_METADATA["terminal"],
             args=[ws],                       # appended to the .desktop Exec / alias
         )
@@ -2112,7 +2112,7 @@ def _do_install_remove(remove: bool, workspace: "str | None" = None,
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(prog="lernen", description=str(PARENT_METADATA["desc"]))
+    parser = argparse.ArgumentParser(prog="studyclaude", description=str(PARENT_METADATA["desc"]))
     parser.add_argument("workspace", nargs="?", default=None,
                         help="workspace folder (default: the registered default course)")
     parser.add_argument("--advertise", action="store_true", help="emit installer metadata JSON")
@@ -2190,13 +2190,13 @@ def main() -> int:
     if args.tutor:
         data = _ensure_default(_load_registry())
         if not data["workspaces"]:
-            print("Noch kein Kurs registriert — run `lernen` for the menu.")
+            print("Noch kein Kurs registriert — run `studyclaude` for the menu.")
             return 1
         return _launch_tutor_choice(data, inline=False)
     if args.quickie:
         data = _ensure_default(_load_registry())
         if not data["workspaces"]:
-            print("Noch kein Kurs registriert — run `lernen` for the menu.")
+            print("Noch kein Kurs registriert — run `studyclaude` for the menu.")
             return 1
         return _launch_quickie(data, inline=False)
     if args.meta is not None:
@@ -2213,7 +2213,7 @@ def main() -> int:
         else:
             sel = _meta_selection(data)
             if sel is None:
-                print("Noch keine Meta-Auswahl gemerkt — `lernen --meta ZIEL QUELLE…`, "
+                print("Noch keine Meta-Auswahl gemerkt — `studyclaude --meta ZIEL QUELLE…`, "
                       "oder im Menü mit der Leertaste wählen.")
                 return 1
             target, sources = sel
@@ -2225,7 +2225,7 @@ def main() -> int:
         data = _ensure_default(_load_registry())
         focus = [_abs_path(p) for p in args.gaertner]   # not registered: that is a change to plan
         if not data["workspaces"] and not focus:
-            print("Noch kein Kurs registriert — run `lernen` for the menu.")
+            print("Noch kein Kurs registriert — run `studyclaude` for the menu.")
             return 1
         if args.print_prompt:
             print(_assemble_gaertner_prompt())
@@ -2263,7 +2263,7 @@ def main() -> int:
 
     ws = _resolve_workspace(args.workspace)
     if ws is None:
-        print("No workspace given and none registered yet — run `lernen` for the menu "
+        print("No workspace given and none registered yet — run `studyclaude` for the menu "
               "and pick \u201eneuen Kurs anlegen\u201c.")
         return 1
 
