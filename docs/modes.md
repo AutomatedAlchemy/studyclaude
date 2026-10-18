@@ -1,8 +1,35 @@
 # Launch modes in detail
 
-The menu and the flags in the [README](../README.md) start five kinds of session.
-A plain course launch just runs that workspace's Lern-Loop. The other four are
+The menu and the flags in the [README](../README.md) start six kinds of session.
+A plain course launch just runs that workspace's Lern-Loop. The other five are
 described here.
+
+## Begleiter
+
+The Begleiter is the default persona and the menu's top row as soon as one
+course is registered. Picking it (or running `studyclaude --begleiter`) launches
+one session at the courses' common parent folder, like the Gärtner, with every
+course's dossier, your upcoming exams, the Wochenplan and the current time. It
+works from the clock:
+
+1. It reads your profile: the tab „Profil“ on a Tutor Board named „studyclaude“.
+   The profile says who you are (programme, semester), where your timetable is
+   (a calendar, a file, another board's tab) and where the semester's material
+   lies. It is free text. The repo holds no personal data, so the profile lives
+   on your board. Without a board, or without the tab, the session asks you for
+   these facts in chat and offers to create the tab.
+2. It checks the timetable the profile names: what runs now, what just ended,
+   what comes later today, and deadlines until tomorrow.
+3. It picks what is due: following a lecture that is running, preparing one that
+   starts within the hour, reviewing one that just ended, a deadline, or — in free
+   time — a course by Wochenplan, exams and dossiers, and the next Häppchen from
+   its Lern-Loop.
+4. It tells you in at most three lines what is on now, what comes later and what
+   it suggests, and then starts.
+
+It is the automatic default whenever you never chose one, and `d` on its row or
+`studyclaude --set-default begleiter` sets it explicitly. The board „studyclaude“
+holds only the profile; Häppchen go on each course's own board.
 
 ## Tutors Choice
 
@@ -20,11 +47,9 @@ session — no hidden pre-pass, no wait at the menu. It starts at the courses'
 common parent folder so it can work across all of them.
 
 Tutors Choice can itself be the default: press `d` on its row, or run
-`studyclaude --set-default tutor` — the 10s autostart then runs the tutor pick. It
-is also the automatic default whenever you have two or more courses and never
-explicitly chose one, so a fresh install autostarts into Tutors Choice as soon
-as there is a real choice. (Scripted flags like `--dry-run` need a concrete
-folder and fall back to the first course.)
+`studyclaude --set-default tutor` — the 10s autostart then runs the tutor pick.
+(Scripted flags like `--dry-run` need a concrete folder and fall back to the
+first course.)
 
 ## Quickie
 

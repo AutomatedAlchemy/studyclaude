@@ -107,14 +107,15 @@ def test_registry_state_machine(tmp_path, monkeypatch):
     a, b = _courses(tmp_path, "A", "B")
     m._register_workspace(a)
     assert m._load_registry()["default"] is None            # registering never claims it
-    assert m._ensure_default(m._load_registry())["default"] == a   # sole course is default
+    assert m._ensure_default(m._load_registry())["default"] == m._BEGLEITER_SENTINEL
     m._register_workspace(b); m._register_workspace(b)
     assert m._load_registry()["workspaces"].count(b) == 1   # idempotent
     data = m._load_registry(); data["default"] = None
-    assert m._ensure_default(data)["default"] == m._TUTOR_SENTINEL   # ≥2 → Tutors Choice
+    assert m._ensure_default(data)["default"] == m._BEGLEITER_SENTINEL   # unset → Begleiter
     m._set_default(b)
     assert m._load_registry()["default"] == b
-    for literal, sentinel in (("tutor", m._TUTOR_SENTINEL), ("quickie", m._QUICKIE_SENTINEL)):
+    for literal, sentinel in (("tutor", m._TUTOR_SENTINEL), ("quickie", m._QUICKIE_SENTINEL),
+                              ("begleiter", m._BEGLEITER_SENTINEL)):
         m._set_default(literal)
         data = m._load_registry()
         assert data["default"] == sentinel and sentinel not in data["workspaces"]
@@ -124,12 +125,15 @@ def test_registry_state_machine(tmp_path, monkeypatch):
     monkeypatch.delenv("STUDYCLAUDE_DEFAULT_WORKSPACE")
     m._set_default(a)
     assert m._unregister_workspace(a) and not m._unregister_workspace(a)
-    assert m._ensure_default(m._load_registry())["default"] == b   # default falls back
-    assert m._menu_rows([a, b]) == [m._QUICKIE_SENTINEL, m._TUTOR_SENTINEL, a, b, m._ADD_SENTINEL]
-    assert m._menu_rows([a]) == [m._QUICKIE_SENTINEL, a, m._ADD_SENTINEL]   # tutor needs a choice
+    assert m._ensure_default(m._load_registry())["default"] == m._BEGLEITER_SENTINEL   # falls back
+    assert m._menu_rows([a, b]) == [m._BEGLEITER_SENTINEL, m._QUICKIE_SENTINEL, m._TUTOR_SENTINEL,
+                                    a, b, m._ADD_SENTINEL]
+    assert m._menu_rows([a]) == [m._BEGLEITER_SENTINEL, m._QUICKIE_SENTINEL, a,
+                                 m._ADD_SENTINEL]   # tutor needs a choice
     # a default that is neither a course nor a known sentinel (retired sentinel
     # from another host, unregistered course) counts as unset
-    assert m._ensure_default({"workspaces": [b], "default": "__RETIRED__"})["default"] == b
+    assert (m._ensure_default({"workspaces": [b], "default": "__RETIRED__"})["default"]
+            == m._BEGLEITER_SENTINEL)
 
 
 def test_archive_moves_the_course_beside_it_and_never_overwrites(tmp_path):
@@ -195,8 +199,9 @@ def test_meta_selection_is_remembered_validated_and_counted(tmp_path):
     a, b, c = _courses(tmp_path, "Physik", "Mathe", "Spanisch")
     data = {"workspaces": [a, b, c], "default": None}
     assert m._meta_selection(data) is None
-    assert m._menu_rows([a, b], meta=True) == [m._QUICKIE_SENTINEL, m._TUTOR_SENTINEL,
-                                               m._META_SENTINEL, a, b, m._ADD_SENTINEL]
+    assert m._menu_rows([a, b], meta=True) == [m._BEGLEITER_SENTINEL, m._QUICKIE_SENTINEL,
+                                               m._TUTOR_SENTINEL, m._META_SENTINEL, a, b,
+                                               m._ADD_SENTINEL]
     assert m._META_SENTINEL not in m._menu_rows([a, b])          # no selection, no row
     assert m._record_meta(data, a, [b, c], "2026-09-11") == (1, 1, 1)
     assert m._meta_selection(data) == (a, [b, c])
@@ -207,7 +212,8 @@ def test_meta_selection_is_remembered_validated_and_counted(tmp_path):
     data["workspaces"].remove(b)
     assert m._meta_selection(data) is None                      # no source left
     data["default"] = m._META_SENTINEL
-    assert m._ensure_default(data)["default"] == a              # sentinel without selection resets
+    assert (m._ensure_default(data)["default"]
+            == m._BEGLEITER_SENTINEL)                           # sentinel without selection resets
     m._register_workspace(a); m._register_workspace(b)
     assert "unverändert" in m._set_default("meta")              # nothing remembered yet
     reg = m._load_registry(); m._record_meta(reg, a, [b]); m._save_registry(reg)
@@ -223,13 +229,15 @@ def test_cli_routes(tmp_path, monkeypatch, spawns):
     m._register_workspace(a); m._register_workspace(b)
     called = []
     for name in ("run_menu", "launch", "do_add", "_launch_tutor_choice", "_launch_quickie",
-                 "_launch_meta", "_launch_gaertner"):
+                 "_launch_meta", "_launch_gaertner", "_launch_begleiter"):
         monkeypatch.setattr(m, name, lambda *x, _n=name, **k: called.append(_n) or 0)
     cases = {
         (): "run_menu",
         (a,): "launch",
         ("--add",): "do_add",
         ("--tutor",): "_launch_tutor_choice",
+        ("--begleiter",): "_launch_begleiter",
+        ("--print-prompt", "--begleiter"): None,
         ("--quickie",): "_launch_quickie",
         ("--meta", a, b): "_launch_meta",
         ("--meta",): None,              # nothing remembered yet (the stub above records nothing)
@@ -283,9 +291,11 @@ def test_launches_exec_one_interactive_session(tmp_path, monkeypatch, spawns):
     cwds = []
     for call in (lambda: m.launch(a, inline=True),
                  lambda: m._launch_tutor_choice({"workspaces": [a, b]}, inline=True),
-                 lambda: m._launch_quickie({"workspaces": [a]}, inline=True)):
+                 lambda: m._launch_quickie({"workspaces": [a]}, inline=True),
+                 lambda: m._launch_begleiter({"workspaces": [a, b]}, inline=True)):
         call(); cwds.append(spawns["cwd"])
-    assert cwds == [a, str(tmp_path), a]
+    assert cwds == [a, str(tmp_path), a, str(tmp_path)]
+    assert "-p" not in spawns["exec"][-1]
     # the desktop-icon route (inline=False) spawns konsole with the same argv
     spawns["allow_popen"] = True
     m.launch(a)
@@ -323,6 +333,7 @@ def test_prompts_orient_without_reencoding_the_procedure(tmp_path, monkeypatch):
         "quickie-solo": m._assemble_quickie_prompt([a]) + m.opening_message_quickie([a], 0, 1),
         "meta": m._assemble_meta_prompt(a, [b]) + m.opening_message_meta(a, [b], 1, 2, 1),
         "gaertner": m._assemble_gaertner_prompt() + m.opening_message_gaertner([a, b], [b]),
+        "begleiter": m._assemble_begleiter_prompt() + m.opening_message_begleiter([a, b]),
     }
     for name, text in texts.items():
         assert "CLAUDE.md" in text and "Heute:" in text, name
@@ -349,6 +360,7 @@ def test_prompts_orient_without_reencoding_the_procedure(tmp_path, monkeypatch):
     assert finder.is_file() and "blatt_finder.py" in TEMPLATE
     assert str(finder) in texts["course"] and str(finder) in texts["tutor"]
     assert str(finder) not in texts["quickie"] and str(finder) not in texts["meta"]
+    assert "Kursübersicht" in texts["begleiter"] and str(finder) in texts["begleiter"]
     assert a in texts["course"]
     assert a in texts["tutor"] and b in texts["tutor"] and "2/30" in texts["tutor"]   # dossiers
     assert a in texts["quickie"] and b in texts["quickie"]
@@ -562,6 +574,25 @@ def test_wochenplan_reaches_the_course_pick(tmp_path):
     assert "<wochenplan>" in m.opening_message_quickie([a, b], 1, 2)
     assert "<wochenplan>" in m.opening_message_tutor([a, b])
     assert "<wochenplan>" not in m.opening_message_quickie([a], 1, 2)  # one course: no pick
+
+
+def test_begleiter_starts_from_the_clock_and_the_profile_tab(tmp_path):
+    """The Begleiter's opening carries the launch time in German whatever the
+    locale, points at the profile tab on the board (the profile is never in
+    the repo), sees every dossier, and gets the Wochenplan for free time only —
+    the course pick is one of its options, not its first job."""
+    a, b = _courses(tmp_path, "Physik", "Spanisch")
+    now = datetime.datetime(2026, 10, 19, 14, 5)
+    text = m.opening_message_begleiter([a, b], now=now)
+    assert "Montag, 19.10.2026, 14:05 Uhr" in text
+    assert f"„{m.PROFILE_BOARD}“, Tab „{m.PROFILE_TAB}“" in text
+    assert a in text and b in text and "<dossiers>" in text
+    assert "<wochenplan>" not in text
+    (tmp_path / "wochenplan.md").write_text("Mo–Fr: Physik\n", encoding="utf-8")
+    text = m.opening_message_begleiter([a, b], now=now)
+    assert "<wochenplan>\nMo–Fr: Physik\n</wochenplan>" in text
+    assert "Wähle den Kurs nach meinem Wochenplan" not in text
+    assert "`date`" in m._assemble_begleiter_prompt()      # the opening's time goes stale
 
 
 def test_exam_table_parsing(tmp_path, monkeypatch):

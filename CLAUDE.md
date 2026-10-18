@@ -159,10 +159,42 @@ Gärtner keeps it current when courses are added or removed.
 The registry `default` may hold the `__TUTOR__` sentinel: `d` on the row or
 `--set-default tutor` writes it, and the menu autostart then routes to the tutor
 pick. Registration never claims the default any more — an unset default resolves
-in `_ensure_default` to Tutors Choice with ≥2 courses, the sole course with one.
+in `_ensure_default` to the Begleiter as soon as there is one course.
 `_default_workspace()` (scripts, `--dry-run`/`--print-prompt`) never returns the
 sentinel; it falls back to the first course. The row renders in always-bold
 magenta (`C["tutor"]`), distinct from the muted add-row magenta.
+
+## Begleiter: the clock first, the profile on the board
+
+The default persona (user, 2026-10-18). `_launch_begleiter` runs one session at
+`_tutor_workdir`, like the Gärtner, so it can work in whichever course the hour
+asks for. The opening (`opening_message_begleiter`) carries the launch time
+(`_now_line`, German weekday from `_WEEKDAYS_LONG_DE`, never `%A`, which follows
+the locale), the exams, the Wochenplan as text for free time (`_wochenplan_text`,
+without the "Wähle den Kurs" sentence: the pick is one of its options, not its
+first job), every dossier, and the loop, finder and overview briefs for when it
+becomes a Häppchen. The system prompt tells it to run `date` before any statement
+about time, because the opening's time is stale minutes after launch.
+
+What is due now is the model's judgment. The launcher neither reads the
+timetable nor maps a lecture to a course: timetables come in too many shapes (a
+calendar, a campo export, a board tab), and which course bundles which lecture
+is a fact of the course, not of this tool.
+
+**The profile is on the board, not in the repo.** Who the user is and where the
+timetable and the semester material are is a tab `PROFILE_TAB` („Profil“) on a
+board `PROFILE_BOARD` („studyclaude“), found by name. The repo is public and
+`test_no_personal_paths_and_no_builtin_default` keeps personal data out of
+`main.py`; the board is the user's own and reaches every agent on the account.
+The prompt names only the board and the tab, never how the MCP tools work
+(same boundary as `templates/media/board.md`). Without a board tool (fauclaude,
+Xournal++ users) or without the tab, the session says so in one sentence and asks
+in chat. The board „studyclaude“ holds only the profile; course work goes on the
+course's own board, as the medium file says.
+
+It is a row and a sentinel (`_BEGLEITER_SENTINEL`, in `_SENTINELS`): a valid
+default (`d`, `--set-default begleiter`), shown with ≥1 course, no registry
+state of its own. Added after the 2026-10-02 freeze of v1.0 (see `TODOS.md`).
 
 ## Quickie: the habit entry, not a second loop
 
